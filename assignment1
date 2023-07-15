@@ -1,0 +1,143 @@
+1. Download vechile sales data -> https://github.com/shashank-mishra219/Hive-Class/blob/main/sales_order_data.csv
+
+
+2. Store raw data into hdfs location
+hdfs dfs -put /config/workspace/sales_order_data.csv /hadoop_rakesh
+
+3. Create a internal hive table "sales_order_csv" which will store csv data sales_order_csv .. make sure to skip header row while creating table
+
+
+CREATE TABLE sales_order_csv (
+       ORDERNUMBER INT,
+       QUANTITYORDERED INT,
+       PRICEEACH DECIMAL(10,2),
+       ORDERLINENUMBER INT,
+       SALES DECIMAL(10,2),
+       STATUS STRING,
+       QTR_ID INT,
+       MONTH_ID INT,
+       YEAR_ID INT,
+       PRODUCTLINE STRING,
+       MSRP INT,
+       PRODUCTCODE STRING,
+       PHONE STRING,
+       CITY STRING,
+       STATE STRING,
+       POSTALCODE STRING,
+       COUNTRY STRING,
+       TERRITORY STRING,
+       CONTACTLASTNAME STRING,
+       CONTACTFIRSTNAME STRING,
+       DEALSIZE STRING
+     )
+     row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde'                                                                           
+          with serdeproperties (                                                                                                                  
+           "separatorChar" = ",",                                                                                                                 
+           "quoteChar" = "\"",                                                                                                                    
+           "escapeChar" = "\\"                                                                                                                    
+          ) 
+     STORED AS TEXTFILE
+     TBLPROPERTIES ('skip.header.line.count'='1');
+OK
+Time taken: 0.075 seconds
+hive LOAD DATA LOCAL INPATH 'sales_order_data.csv' INTO TABLE sales_order_csv;
+Loading data to table default.sales_order_csv
+OK
+Time taken: 0.338 seconds
+hive SELECT * FROM sales_order_csv limit 10;
+OK
+10107   30      95.7    2       2871    Shipped 1       2       2003    Motorcycles     95      S10_1678        2125557818      NYC     NY10022    USA     NA      Yu      Kwai    Small
+10121   34      81.35   5       2765.9  Shipped 2       5       2003    Motorcycles     95      S10_1678        26.47.1555      Reims     51100    France  EMEA    Henriot Paul    Small
+10134   41      94.74   2       3884.34 Shipped 3       7       2003    Motorcycles     95      S10_1678        +33 1 46 62 7555        Paris              75508   France  EMEA    Da Cunha        Daniel  Medium
+10145   45      83.26   6       3746.7  Shipped 3       8       2003    Motorcycles     95      S10_1678        6265557265      Pasadena  CA       90003   USA     NA      Young   Julie   Medium
+10159   49      100     14      5205.27 Shipped 4       10      2003    Motorcycles     95      S10_1678        6505551386      San Francisco      CA              USA     NA      Brown   Julie   Medium
+10168   36      96.66   1       3479.76 Shipped 4       10      2003    Motorcycles     95      S10_1678        6505556809      BurlingameCA       94217   USA     NA      Hirano  Juri    Medium
+10180   29      86.13   9       2497.77 Shipped 4       11      2003    Motorcycles     95      S10_1678        20.16.1555      Lille     59000    France  EMEA    Rance   Martine Small
+10188   48      100     1       5512.32 Shipped 4       11      2003    Motorcycles     95      S10_1678        +47 2267 3215   Bergen    N 5804   Norway  EMEA    Oeztan  Veysel  Medium
+10201   22      98.57   2       2168.54 Shipped 4       12      2003    Motorcycles     95      S10_1678        6505555787      San Francisco      CA              USA     NA      Murphy  Julie   Small
+10211   41      100     14      4708.44 Shipped 1       1       2004    Motorcycles     95      S10_1678        (1) 47.55.6555  Paris     75016    France  EMEA    Perrier Dominique       Medium
+Time taken: 0.148 seconds, Fetched: 10 row(s)
+hive 
+
+-- note above used for customized properties 
+desrial8ized object (row)
+"" \ escape character
+"shashank" -- "\"  ,"shashank.mishra" -- . is not meant to be consider
+
+
+
+-- 5. Create an internal hive table which will store data in ORC format "sales_order_orc"
+CREATE TABLE sales_order_orc (
+       ORDERNUMBER INT,
+       QUANTITYORDERED INT,
+       PRICEEACH DECIMAL(10,2),
+       ORDERLINENUMBER INT,
+       SALES DECIMAL(10,2),
+       STATUS STRING,
+       QTR_ID INT,
+       MONTH_ID INT,
+       YEAR_ID INT,
+       PRODUCTLINE STRING,
+       MSRP INT,
+       PRODUCTCODE STRING,
+       PHONE STRING,
+       CITY STRING,
+       STATE STRING,
+       POSTALCODE STRING,
+       COUNTRY STRING,
+       TERRITORY STRING,
+       CONTACTLASTNAME STRING,
+       CONTACTFIRSTNAME STRING,
+       DEALSIZE STRING
+     )
+
+STORED AS ORC;
+
+-- 6. Load data from "sales_order_csv" into "sales_order_orc"
+
+INSERT INTO TABLE sales_order_orc
+SELECT * FROM sales_order_csv;
+
+
+
+
+SELECT YEAR_ID, SUM(SALES) AS total_sales
+FROM sales_order_csv
+GROUP BY YEAR_ID;
+
+select year_id, sum(sales) as total_sales from sales_order_orc group by year_id;
+
+
+ create table sales_order_grouped_orc_v2 stored as orc as select year_id, sum(sales) as total_sales from sales_order_orc 
+ group by year_id;
+
+
+b. Find a product for which maximum orders were placed
+
+SELECT PRODUCTCODE, COUNT(ORDERNUMBER) AS order_count
+FROM sales_order_csv
+GROUP BY PRODUCTCODE
+ORDER BY order_count DESC
+LIMIT 1;
+
+SELECT QTR_ID, SUM(SALES) AS TotalSales
+FROM sales_order_csv
+GROUP BY QTR_ID;
+
+ create table sales_order_grouped_orc_v2 stored as orc as select year_id, sum(sales) as total_sales from sales_order_data_orc group by ye
+ar_id;
+
+b. Find a product for which maximum orders were placed
+
+SELECT PRODUCTLINE, COUNT(*) AS total_orders
+FROM sales_order_orc
+GROUP BY PRODUCTLINE
+ORDER BY total_orders DESC
+LIMIT 1;
+
+
+c. Calculate the total sales for each quarter
+
+SELECT QTR_ID, SUM(SALES) AS total_sales
+FROM sales_order_orc
+GROUP BY QTR_ID;
